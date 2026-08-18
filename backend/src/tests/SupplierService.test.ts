@@ -1,21 +1,30 @@
-import { AppDataSource } from '../config/data-source';
+import { DataSource } from 'typeorm';
 import { SupplierService } from '../services/SupplierService';
 import { Supplier, SupplierStatus } from '../entities/Supplier';
 
+let testDataSource: DataSource;
 let service: SupplierService;
 
 beforeAll(async () => {
-  await AppDataSource.initialize();
-  await AppDataSource.getRepository(Supplier).clear();
+  testDataSource = new DataSource({
+    type: 'sqlite',
+    database: ':memory:',
+    entities: [Supplier],
+    synchronize: true, // Creates tables automatically for tests
+    logging: false
+  });
+  await testDataSource.initialize();
 });
 
 afterAll(async () => {
-  await AppDataSource.destroy();
+  if (testDataSource.isInitialized) {
+    await testDataSource.destroy();
+  }
 });
 
 beforeEach(async () => {
-  service = new SupplierService();
-  await AppDataSource.getRepository(Supplier).clear();
+  await testDataSource.getRepository(Supplier).clear();
+  service = new SupplierService(testDataSource.getRepository(Supplier));
 });
 
 describe('SupplierService', () => {
